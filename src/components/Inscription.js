@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,23 +13,9 @@ const Inscription = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [localUsers, setLocalUsers] = useState([]);
   
   const navigate = useNavigate();
   const { register } = useAuth();
-
-  // Charger les utilisateurs depuis le localStorage au montage du composant
-  useEffect(() => {
-    const storedUsers = localStorage.getItem('chatAppUsers');
-    if (storedUsers) {
-      try {
-        setLocalUsers(JSON.parse(storedUsers));
-      } catch (error) {
-        console.error("Erreur lors du parsing des utilisateurs:", error);
-        setLocalUsers([]);
-      }
-    }
-  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -42,13 +28,6 @@ const Inscription = () => {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
-
-    // Vérification si l'email existe déjà
-    const emailExists = localUsers.some(user => user.email === formData.email);
-    if (emailExists) {
-      setError('Cet email est déjà utilisé. Veuillez utiliser un autre email.');
-      return;
-    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Les mots de passe ne correspondent pas');
@@ -63,30 +42,18 @@ const Inscription = () => {
     setIsLoading(true);
     
     try {
-      const userData = {
-        id: Date.now(),
-        email: formData.email,
+      const result = await register({
         name: formData.name,
-        avatar: '👤',
-        password: formData.password // En pratique, il faudrait hacher le mot de passe
-      };
+        email: formData.email
+      }, formData.password);
       
-      const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
       
-      // Mettre à jour la liste locale des utilisateurs
-      const updatedUsers = [...localUsers, userData];
-      setLocalUsers(updatedUsers);
-      localStorage.setItem('chatAppUsers', JSON.stringify(updatedUsers));
-      
-      await register(userData, fakeToken);
-      
-      // Afficher un message de succès
-      setSuccessMessage('Inscription réussie ! Redirection vers la page de connexion...');
-      
-      // Rediriger vers la page de connexion après 2 secondes
-      setTimeout(() => {
-        navigate('/connexion');
-      }, 2000);
+      setSuccessMessage('✅ Inscription réussie ! Redirection vers la page de connexion...');
+      setTimeout(() => navigate('/connexion'), 2000);
       
     } catch (err) {
       setError("Erreur lors de l'inscription: " + err.message);
@@ -96,34 +63,40 @@ const Inscription = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cover bg-center bg-no-repeat bg-chatbot-pattern">
-      <div className="absolute inset-0 bg-black bg-opacity-20 backdrop-blur-sm"></div>
+    <div 
+      className="min-h-screen flex items-center justify-center bg-cover bg-center relative"
+      style={{ backgroundImage: "url('/images/0173fef5-6578-4351-a75e-e9805bb08395.jpg')" }}
+    >
+      {/* Overlay futuriste */}
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/80 via-purple-900/70 to-black/80"></div>
       
-      <div className="relative z-10 w-full max-w-md mx-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+      <div className="relative z-10 w-full max-w-md mx-4 animate-fade-in">
+        <div className="glass-effect rounded-2xl shadow-2xl p-8 border border-white/20 backdrop-blur-xl">
+          {/* Logo futuriste */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-3xl text-white">🤖</span>
+            <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg animate-float">
+              <span className="text-3xl text-white">📝</span>
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Inscription</h1>
-            <p className="text-gray-600">Rejoignez notre communauté</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Inscription</h1>
+            <p className="text-gray-300">Rejoignez notre communauté Gemini</p>
           </div>
 
+          {/* Messages */}
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
               {error}
             </div>
           )}
-
           {successMessage && (
             <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg">
               {successMessage}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Formulaire */}
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-200 mb-2">
                 Nom complet
               </label>
               <input
@@ -132,14 +105,14 @@ const Inscription = () => {
                 type="text"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                placeholder="Votre nom"
+                className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-gray-300 border border-white/20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
+                placeholder="Votre nom complet"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-200 mb-2">
                 Email
               </label>
               <input
@@ -148,14 +121,14 @@ const Inscription = () => {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
+                className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-gray-300 border border-white/20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
                 placeholder="votre@email.com"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-200 mb-2">
                 Mot de passe
               </label>
               <div className="relative">
@@ -165,37 +138,40 @@ const Inscription = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 pr-12"
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-gray-300 border border-white/20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 pr-12"
                   placeholder="Créez un mot de passe (min. 6 caractères)"
                   required
                   minLength="6"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-200 mb-2">
+                Confirmez le mot de passe
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-lg bg-white/10 text-white placeholder-gray-300 border border-white/20 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 pr-12"
+                  placeholder="Confirmez le mot de passe"
+                  required
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-indigo-600 transition duration-200"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white transition duration-200"
                 >
                   {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmer le mot de passe
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                placeholder="Confirmez votre mot de passe"
-                required
-              />
-            </div>
-
+            {/* Bouton */}
             <button
               type="submit"
               disabled={isLoading}
@@ -212,12 +188,13 @@ const Inscription = () => {
             </button>
           </form>
 
+          {/* Lien vers connexion */}
           <div className="text-center mt-6">
-            <p className="text-sm text-gray-600">
-              Déjà un compte?{' '}
+            <p className="text-sm text-gray-300">
+              Déjà un compte ?{' '}
               <Link
                 to="/connexion"
-                className="text-indigo-600 hover:text-indigo-500 font-medium transition duration-200"
+                className="text-indigo-400 hover:text-indigo-300 font-medium transition duration-200"
               >
                 Se connecter
               </Link>
